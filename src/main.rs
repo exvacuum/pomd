@@ -1,8 +1,9 @@
 use std::{
     sync::{Arc, Mutex},
-    time::{Duration, Instant},
+    time::Duration,
 };
 
+use pausable_clock::{PausableClock, PausableInstant};
 use zbus::{dbus_interface, ConnectionBuilder, Result};
 
 use notify_rust::Notification;
@@ -13,11 +14,11 @@ const LONG_BREAK_DURATION_SECS: f32 = 15.0 * 60.0;
 const NUM_ITERATIONS: u8 = 4;
 
 struct Pomd {
-    remaining: Duration,
+    duration: Duration,
     iteration: u8,
-    running: bool,
     on_break: bool,
-    last_instant: Instant,
+    clock: PausableClock,
+    start: PausableInstant
 }
 
 #[derive(Default)]
@@ -28,7 +29,8 @@ struct PomdInterface {
 #[dbus_interface(name = "dev.exvacuum.pomd")]
 impl PomdInterface {
     async fn get_remaining(&self) -> Duration {
-        self.data.lock().unwrap().remaining
+        let data = self.data.lock().unwrap();
+        data.duration.checked_sub(data.start.elapsed(&data.clock)).unwrap_or_default()
     }
 
     async fn get_iteration(&self) -> u8 {
@@ -36,7 +38,7 @@ impl PomdInterface {
     }
 
     async fn is_running(&self) -> bool {
-        self.data.lock().unwrap().running
+        !self.data.lock().unwrap().clock.is_paused()
     }
 
     async fn is_on_break(&self) -> bool {
@@ -44,11 +46,11 @@ impl PomdInterface {
     }
 
     async fn start(&self) {
-        self.data.lock().unwrap().running = true;
+        self.data.lock().unwrap().clock.resume();
     }
 
     async fn pause(&self) {
-        self.data.lock().unwrap().running = false;
+        self.data.lock().unwrap().clock.pause();
     }
 
     async fn stop(&self) {
@@ -56,42 +58,42 @@ impl PomdInterface {
     }
 
     async fn skip(&self) {
-        self.data.lock().unwrap().running = false;
         self.data.lock().unwrap().setup_next_iteration();
     }
 }
 
 impl Default for Pomd {
     fn default() -> Self {
+        let clock = PausableClock::new(Duration::ZERO, true);
+        let start  = clock.now();
         Self {
-            remaining: Duration::from_secs_f32(WORK_DURATION_SECS),
+            duration: Duration::from_secs_f32(WORK_DURATION_SECS),
             iteration: 0,
-            running: false,
             on_break: false,
-            last_instant: Instant::now(),
+            clock,
+            start,
         }
     }
 }
 
 impl Pomd {
     fn update(&mut self) {
-        let elapsed = self.last_instant.elapsed();
-        self.last_instant = Instant::now();
-        if self.running {
-            if self.remaining > elapsed {
-                self.remaining -= elapsed;
-            } else {
-                self.running = false;
+        if self.duration < self.start.elapsed(&self.clock) {
                 self.notify();
                 self.setup_next_iteration();
-            }
         }
     }
 
     fn setup_next_iteration(&mut self) {
+        self.clock.pause();
+        self.start  = self.clock.now();
         self.on_break ^= true;
-        self.remaining = if self.on_break {
-            if self.iteration == NUM_ITERATIONS-1 { Duration::from_secs_f32(LONG_BREAK_DURATION_SECS) } else { Duration::from_secs_f32(SHORT_BREAK_DURATION_SECS) }
+        self.duration = if self.on_break {
+            if self.iteration == NUM_ITERATIONS - 1 {
+                Duration::from_secs_f32(LONG_BREAK_DURATION_SECS)
+            } else {
+                Duration::from_secs_f32(SHORT_BREAK_DURATION_SECS)
+            }
         } else {
             self.iteration = (self.iteration + 1) % NUM_ITERATIONS;
             Duration::from_secs_f32(WORK_DURATION_SECS)
@@ -103,12 +105,18 @@ impl Pomd {
             Notification::new()
                 .summary("Break Complete")
                 .body("Click to dismiss")
-                .show().unwrap();
+                .show()
+                .unwrap();
         } else {
             Notification::new()
-                .summary(&format!("Pomodoro Complete ({}/{})", self.iteration + 1, NUM_ITERATIONS))
+                .summary(&format!(
+                    "Pomodoro Complete ({}/{})",
+                    self.iteration + 1,
+                    NUM_ITERATIONS
+                ))
                 .body("Click to dismiss")
-                .show().unwrap();
+                .show()
+                .unwrap();
         }
     }
 }
