@@ -10,7 +10,7 @@ use notify_rust::Notification;
 
 const WORK_DURATION_SECS: f32 = 15.0 * 60.0;
 const SHORT_BREAK_DURATION_SECS: f32 = 5.0 * 60.0;
-const LONG_BREAK_DURATION_SECS: f32 = 15.0 * 60.0;
+const LONG_BREAK_DURATION_SECS: f32 = 25.0 * 60.0;
 const NUM_ITERATIONS: u8 = 4;
 
 struct Pomd {
