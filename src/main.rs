@@ -4,16 +4,35 @@ use std::{
 };
 
 use pausable_clock::{PausableClock, PausableInstant};
+use serde::{Serialize, Deserialize};
 use zbus::{dbus_interface, ConnectionBuilder, Result};
 
 use notify_rust::Notification;
 
-const WORK_DURATION_SECS: f32 = 15.0 * 60.0;
-const SHORT_BREAK_DURATION_SECS: f32 = 5.0 * 60.0;
-const LONG_BREAK_DURATION_SECS: f32 = 25.0 * 60.0;
-const NUM_ITERATIONS: u8 = 4;
+#[derive(Serialize, Deserialize, Clone, Copy)]
+struct PomdConfig {
+    work_duration: f32,
+    short_break_duration: f32,
+    long_break_duration: f32,
+    num_iterations: u8,
+    notify: bool,
+}
+
+impl Default for PomdConfig {
+    fn default() -> Self {
+        Self {
+            work_duration: 15.0 * 60.0,
+            short_break_duration: 5.0 * 60.0,
+            long_break_duration: 25.0 * 60.0,
+            num_iterations: 4,
+            notify: true,
+        }
+    }
+}
+
 
 struct Pomd {
+    config: PomdConfig,
     duration: Duration,
     iteration: u8,
     on_break: bool,
@@ -21,9 +40,18 @@ struct Pomd {
     start: PausableInstant
 }
 
-#[derive(Default)]
 struct PomdInterface {
     data: Arc<Mutex<Pomd>>,
+    config: PomdConfig
+}
+
+impl PomdInterface {
+    fn new(config: PomdConfig) -> Self {
+        Self { 
+            data: Arc::new(Mutex::new(Pomd::new(config))),
+            config,
+        }
+    }
 }
 
 #[dbus_interface(name = "dev.exvacuum.pomd")]
@@ -54,7 +82,7 @@ impl PomdInterface {
     }
 
     async fn stop(&self) {
-        *self.data.lock().unwrap() = Pomd::default();
+        *self.data.lock().unwrap() = Pomd::new(self.config);
     }
 
     async fn skip(&self) {
@@ -62,12 +90,13 @@ impl PomdInterface {
     }
 }
 
-impl Default for Pomd {
-    fn default() -> Self {
+impl  Pomd {
+    fn new(config: PomdConfig) -> Self {
         let clock = PausableClock::new(Duration::ZERO, true);
         let start  = clock.now();
         Self {
-            duration: Duration::from_secs_f32(WORK_DURATION_SECS),
+            config,
+            duration: Duration::from_secs_f32(config.work_duration),
             iteration: 0,
             on_break: false,
             clock,
@@ -79,7 +108,9 @@ impl Default for Pomd {
 impl Pomd {
     fn update(&mut self) {
         if self.duration < self.start.elapsed(&self.clock) {
-                self.notify();
+                if self.config.notify {
+                    self.notify();
+                }
                 self.setup_next_iteration();
         }
     }
@@ -89,14 +120,14 @@ impl Pomd {
         self.start  = self.clock.now();
         self.on_break ^= true;
         self.duration = if self.on_break {
-            if self.iteration == NUM_ITERATIONS - 1 {
-                Duration::from_secs_f32(LONG_BREAK_DURATION_SECS)
+            if self.iteration == self.config.num_iterations - 1 {
+                Duration::from_secs_f32(self.config.long_break_duration)
             } else {
-                Duration::from_secs_f32(SHORT_BREAK_DURATION_SECS)
+                Duration::from_secs_f32(self.config.short_break_duration)
             }
         } else {
-            self.iteration = (self.iteration + 1) % NUM_ITERATIONS;
-            Duration::from_secs_f32(WORK_DURATION_SECS)
+            self.iteration = (self.iteration + 1) % self.config.num_iterations;
+            Duration::from_secs_f32(self.config.work_duration)
         }
     }
 
@@ -112,7 +143,7 @@ impl Pomd {
                 .summary(&format!(
                     "Pomodoro Complete ({}/{})",
                     self.iteration + 1,
-                    NUM_ITERATIONS
+                    self.config.num_iterations
                 ))
                 .body("Click to dismiss")
                 .show()
@@ -123,7 +154,8 @@ impl Pomd {
 
 #[async_std::main]
 async fn main() -> Result<()> {
-    let pomd_interface = PomdInterface::default();
+    let config: PomdConfig = confy::load("pomd", "config").expect("Failed to load config!");
+    let pomd_interface = PomdInterface::new(config);
     let pomd = pomd_interface.data.clone();
     let _connection = ConnectionBuilder::session()?
         .name("dev.exvacuum.pomd")?
