@@ -16,7 +16,7 @@ cargo install --path .
 ```
 
 ## Usage
-To use the program, simply run `pomd` wherever you run startup programs. It requires a D-Bus session, so make sure that you use xinit/startx you will need to start the program after launching your session.
+To use the program, simply run `pomd` wherever you run startup programs. It requires a D-Bus session, so if you use xinit/startx you will need to start the program after launching your session.
 
 The [pomc](https://github.com/exvacuum/pomc) client application can be used to interact with the daemon, or you can interact with the interface in your own scripts/programs.
 
