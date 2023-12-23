@@ -1,6 +1,6 @@
 # pomd: pomodoro daemon
 
-This program provides a simple pomodoro daemon for linux.
+This program provides a simple pomodoro daemon for linux. Recommended to be used with [pomc](https://github.com/exvacuum/pomc) client
 
 ## Features
 - D-Bus interface for pomodoro functionality
@@ -8,6 +8,9 @@ This program provides a simple pomodoro daemon for linux.
     - Duration of work period, short breaks, and long breaks
     - Number of iterations before long breaks
     - Enable/disable notifications
+
+### D-Bus Interface
+![image](https://github.com/exvacuum/pomd/assets/17646388/e80d9893-94b6-4450-a1c3-2e2893ca3eb7)
 
 ## Installation
 ### From Source
