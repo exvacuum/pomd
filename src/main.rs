@@ -1,6 +1,6 @@
 use std::{
     sync::{Arc, Mutex},
-    time::Duration,
+    time::Duration, thread::sleep,
 };
 
 use pausable_clock::{PausableClock, PausableInstant};
@@ -164,5 +164,6 @@ async fn main() -> Result<()> {
         .await?;
     loop {
         pomd.lock().unwrap().update();
+        sleep(Duration::from_millis(100));
     }
 }
