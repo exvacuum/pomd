@@ -1,5 +1,7 @@
 # pomd: pomodoro daemon
 
+![Crates.io Version](https://img.shields.io/crates/v/pomd)
+
 This program provides a simple pomodoro daemon for linux. Recommended to be used with [pomc](https://github.com/exvacuum/pomc) client
 
 ## Features
@@ -13,6 +15,11 @@ This program provides a simple pomodoro daemon for linux. Recommended to be used
 ![image](https://github.com/exvacuum/pomd/assets/17646388/e80d9893-94b6-4450-a1c3-2e2893ca3eb7)
 
 ## Installation
+### Via crates.io
+```sh
+cargo install pomd
+```
+
 ### From Source
 ```sh
 cargo install --path .
