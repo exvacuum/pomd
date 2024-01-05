@@ -1,6 +1,6 @@
 # pomd: pomodoro daemon
 
-![Crates.io Version](https://img.shields.io/crates/v/pomd)
+[![Crates.io Version](https://img.shields.io/crates/v/pomd)](https://crates.io/crates/pomd)
 
 This program provides a simple pomodoro daemon for linux. Recommended to be used with [pomc](https://github.com/exvacuum/pomc) client
 
