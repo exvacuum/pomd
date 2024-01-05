@@ -1,6 +1,6 @@
 [package]
 name = "pomd"
-version = "1.3.0"
+version = "1.4.0"
 description = "A simple configurable pomodoro D-Bus daemon"
 license = "MIT OR Apache-2.0"
 edition = "2021"
