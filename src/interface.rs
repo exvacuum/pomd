@@ -1,5 +1,5 @@
 use std::{sync::{Arc, Mutex}, time::Duration};
-use zbus::dbus_interface;
+use zbus::interface;
 
 use crate::pomd::Pomd;
 
@@ -17,7 +17,7 @@ impl PomdInterface {
     }
 }
 
-#[dbus_interface(name = "dev.exvacuum.pomd")]
+#[interface(name = "dev.exvacuum.pomd")]
 impl PomdInterface {
     fn get_remaining(&self) -> Duration {
         let data = self.state.lock().unwrap();

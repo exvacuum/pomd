@@ -1,6 +1,6 @@
 [package]
 name = "pomd"
-version = "1.4.1"
+version = "1.5.0"
 description = "A simple configurable pomodoro D-Bus daemon"
 license = "MIT OR Apache-2.0"
 edition = "2021"
@@ -9,8 +9,8 @@ repository = "https://github.com/exvacuum/pomd"
 
 [dependencies]
 notify-rust = "4"
-zbus = "3.14.1"
-async-std = { version = "1.12.0", features = ["attributes"] }
-pausable_clock = "1.0.1"
-confy = "0.5.1"
-serde = "1.0.193"
+zbus = "5.1"
+async-std = { version = "1.12", features = ["attributes"] }
+pausable_clock = "1.0"
+confy = "0.6"
+serde = "1.0"
